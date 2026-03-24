@@ -47,6 +47,7 @@ for year, (filename, filetype) in files.items():
             uni_col = "IES UO"
             curso_col = "CURSO"
             vagas_col = "REGIME GERAL DE ACESSO  2025/2026"
+            grau_col = "TIPO CURSO"
         else:
             grade_col = [c for c in df.columns if "colocado" in str(c).lower() and "não" not in str(c).lower()][-1]
 
@@ -60,11 +61,14 @@ for year, (filename, filetype) in files.items():
 
             vagas_col = [c for c in df.columns if "vaga" in str(c).lower() and "adic" not in str(c).lower()][0]
 
+            grau_col = next((c for c in df.columns if "grau" in str(c).lower()), None)
+
         for _, row in df.iterrows():
             uni = str(row[uni_col]).strip()
             curso = str(row[curso_col]).strip()
             grade = row[grade_col]
             vagas = row[vagas_col]
+            grau = str(row[grau_col]).strip() if grau_col else None
 
             if pd.isna(grade) or uni == "nan" or curso == "nan":
                 continue
@@ -80,15 +84,24 @@ for year, (filename, filetype) in files.items():
                     "universidade": uni,
                     "curso": curso,
                     "vagas": vagas_val,
-                    "notas": {}
+                    "notas": {},
+                    "grau": grau if filetype != "xlsx25" else None,
                 }
+            else:
+                if vagas_val is not None:
+                    all_courses[key]["vagas"] = vagas_val
+                if filetype != "xlsx25" and grau:
+                    all_courses[key]["grau"] = grau
+                # Don't update grau from 2025 file — it reclassifies MI as L1
+                if filetype != "xlsx25" and grau:
+                    all_courses[key]["grau"] = grau
             all_courses[key]["notas"][year] = round(float(grade), 1)
 
     except Exception as e:
         print(f"  Error: {e}")
 
 # Convert to list
-courses = list(all_courses.values())
+courses = [c for c in all_courses.values() if 2025 in c["notas"] or 2024 in c["notas"]]
 
 # Save
 os.makedirs("../src/data", exist_ok=True)
