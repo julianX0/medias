@@ -20,27 +20,6 @@ const displayCourses = courses.filter((c) => c.notas[2025]);
       <li>
         <a
           href="#"
-          class="text-sm text-[#7a7060] hover:text-[#0e0e0e] transition-colors font-medium"
-          >Cursos</a
-        >
-      </li>
-      <li>
-        <a
-          href="#"
-          class="text-sm text-[#7a7060] hover:text-[#0e0e0e] transition-colors font-medium"
-          >Universidades</a
-        >
-      </li>
-      <li>
-        <a
-          href="#"
-          class="text-sm text-[#7a7060] hover:text-[#0e0e0e] transition-colors font-medium"
-          >Tendências</a
-        >
-      </li>
-      <li>
-        <a
-          href="#"
           class="text-sm bg-[#0e0e0e] text-[#f5f0e8] px-5 py-2 hover:bg-[#c8410a] transition-colors font-semibold"
           >Calculadora →</a
         >
@@ -195,12 +174,17 @@ const displayCourses = courses.filter((c) => c.notas[2025]);
           class="sort-btn px-3 py-1.5 border border-[#d4cdb8] text-xs font-medium text-[#7a7060]"
           data-sort="az">A–Z <span class="sort-arrow-az">↓</span></button
         >
+        <button
+          class="sort-btn px-3 py-1.5 border border-[#d4cdb8] text-xs font-medium text-[#7a7060]"
+          data-sort="trend"
+          >Tendência <span class="sort-arrow-trend">↓</span></button
+        >
       </div>
     </div>
 
     <div
       id="courseGrid"
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-[#d4cdb8] border border-[#d4cdb8]"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-transparent border border-[#d4cdb8]"
     >
       {
         displayCourses.map((course) => {
@@ -243,21 +227,25 @@ const displayCourses = courses.filter((c) => c.notas[2025]);
                   : "— 0,0";
           return (
             <div
-              class="course-card bg-[#faf7f2] p-6 cursor-pointer relative overflow-hidden flex flex-col"
-              data-curso={course.curso}
+            class="course-card bg-[#faf7f2] p-6 cursor-pointer relative overflow-hidden flex flex-col border-b border-r border-[#d4cdb8]"              data-curso={course.curso}
               data-uni={course.universidade}
               data-nota={course.notas[2025]}
               data-grau={course.grau}
+              data-diff={diff ?? "0"}
               onclick={`openDetail(${JSON.stringify(JSON.stringify(course))})`}
             >
               <div class="card-underline absolute bottom-0 left-0 h-0.5 bg-[#c8410a] w-0 transition-all duration-300" />
               <div class="font-mono text-[10px] tracking-widest text-[#c8410a] uppercase mb-2">
                 <span class="font-bold">
-                  {course.universidade.split("-")[0].trim()}
+                  {course.universidade.split(" - ")[0].trim()}
                 </span>
-                {course.universidade.includes("-") && (
+                {course.universidade.includes(" - ") && (
                   <span class="block font-normal">
-                    {course.universidade.split("-").slice(1).join("-").trim()}
+                    {course.universidade
+                      .split(" - ")
+                      .slice(1)
+                      .join(" - ")
+                      .trim()}
                   </span>
                 )}
               </div>
@@ -495,7 +483,11 @@ const displayCourses = courses.filter((c) => c.notas[2025]);
     filterCards();
 
     // ---- SORT ----
-    const sortDirection: Record<string, string> = { grade: "desc", az: "asc" };
+    const sortDirection: Record<string, string> = {
+      grade: "desc",
+      az: "asc",
+      trend: "desc",
+    };
 
     document.querySelectorAll(".sort-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -507,8 +499,10 @@ const displayCourses = courses.filter((c) => c.notas[2025]);
 
         const gradeArrow = document.querySelector(".sort-arrow-grade")!;
         const azArrow = document.querySelector(".sort-arrow-az")!;
+        const trendArrow = document.querySelector(".sort-arrow-trend")!;
         gradeArrow.textContent = sortDirection["grade"] === "desc" ? "↓" : "↑";
         azArrow.textContent = sortDirection["az"] === "asc" ? "↓" : "↑";
+        trendArrow.textContent = sortDirection["trend"] === "desc" ? "↓" : "↑";
 
         document.querySelectorAll(".sort-btn").forEach((b) => {
           b.classList.remove(
@@ -527,6 +521,11 @@ const displayCourses = courses.filter((c) => c.notas[2025]);
               parseFloat(b.dataset.nota || "0") -
               parseFloat(a.dataset.nota || "0");
             return dir === "desc" ? diff : -diff;
+          }
+          if (sort === "trend") {
+            const diffA = parseFloat(a.dataset.diff || "0");
+            const diffB = parseFloat(b.dataset.diff || "0");
+            return dir === "desc" ? diffB - diffA : diffA - diffB;
           }
           const diff = (a.dataset.curso || "").localeCompare(
             b.dataset.curso || "",
@@ -551,7 +550,7 @@ const displayCourses = courses.filter((c) => c.notas[2025]);
         : "—";
 
       document.getElementById("d-area")!.textContent = course.universidade
-        .split("-")[0]
+        .split(" - ")[0]
         .trim();
       document.getElementById("d-title")!.textContent = course.curso;
       document.getElementById("d-uni")!.textContent = course.universidade;
